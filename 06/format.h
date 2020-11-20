@@ -7,6 +7,20 @@
 #include <sstream>
 using namespace std;
 
+class myExc
+{
+private:
+	string myerror;
+public:
+	myExc(const string & error) : myerror(error)
+    	{
+    	}
+    	const char * getError() const noexcept
+    	{ 
+    		return myerror.c_str(); 
+    	}
+};
+
 bool isNumber(const string &s, int &a);
 
 enum class Error
@@ -17,7 +31,7 @@ enum class Error
 };
 
 template <class T>
-Error build(vector <string> & vec, T && arg)
+Error build(vector <string> & vec, const T & arg)
 {
 	stringstream out;
 	out << boolalpha << arg; 	
@@ -27,35 +41,35 @@ Error build(vector <string> & vec, T && arg)
 
 
 template <class T, class... ArgsT>
-Error build(vector <string> & vec, T && arg, ArgsT&&... args)
+Error build(vector <string> & vec, const T & arg, const ArgsT&... args)
 {
 	Error err;
 	err = build(vec, arg);
-	err = build(vec, forward<ArgsT>(args)...);
+	err = build(vec, args...);
 	return Error::NoError;
 }
 
 
 template<class... ArgsT>
-string format(const string & text, ArgsT&&... args)
+string format(const string & text, const ArgsT&... args)
 {
 	string res = "";
 	vector <string> vec;
-	Error err = build(vec, forward<ArgsT>(args)...);
+	Error err = build(vec, args...);
 	int len = text.size();
 	int sz = vec.size();
 	int flag = 0;
 	if (len == 0)
 		return res;
 	if (text[0] == '}')
-		throw::runtime_error("Wrong usage of }\n");
+		throw myExc("Wrong usage of }\n");
 	string cur;
 	for (int i = 0; i < len; i++)
 	{
 		if (flag == 0)
 		{
 			if (text[i] == '}')
-				throw::runtime_error("Wrong usage of }\n");
+				throw myExc("Wrong usage of }\n");
 			else if (text[i] == '{')
 			{
 				cur = "";
@@ -75,10 +89,10 @@ string format(const string & text, ArgsT&&... args)
 				}
 				catch (const exception & invalid_value)
 				{
-					throw::runtime_error("Wrong number of arguement\n");
+					throw myExc("Wrong number of arguement\n");
 				}
 				if (num >= sz)
-					throw::runtime_error("So large number of arg\n");
+					throw myExc("So large number of arg\n");
 				res += vec[num];
 				flag = 0;
 			}
@@ -88,6 +102,10 @@ string format(const string & text, ArgsT&&... args)
 			}
 		}
 	} 
+	if (flag == 1)
+	{
+		throw myExc("Hasn't closed } \n");
+	}
 	return res;
 } 
 
