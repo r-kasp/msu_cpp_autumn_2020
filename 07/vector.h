@@ -70,17 +70,33 @@ template<class T>
 class Allocator
 {
 public:
-	void alloc(T* &vec, unsigned int & capacity, unsigned int sz, unsigned int newsz)
+	void alloc(T* &vec, unsigned int & cap, unsigned int & sz, unsigned int newsz)
+	{
+		vec = new T[newsz];
+		cap = newsz;
+		sz = newsz;
+	}
+	void realloc(T* &vec, unsigned int & capacity, unsigned int sz, unsigned int newsz)
 	{
 		if (newsz <= capacity)
 			return;
-		capacity = newsz + 10;
+		if (capacity < newsz)
+			capacity = newsz + 10;
 		T* vec2 = new T[capacity];
 		for (int i = 0; i < sz; i++)
 			vec2[i] = vec[i];
 		if (vec != nullptr)
 			delete [] vec;
 		vec = vec2;
+	}
+	void dealloc(T* &vec, unsigned int & capacity, unsigned int & sz)
+	{
+		if (vec == nullptr)
+			return;
+		capacity = 0;
+		sz = 0;
+		delete [] vec;
+		
 	}
 };
 
@@ -102,25 +118,25 @@ public:
 	}
 	Vector(unsigned int size)
 	{
-		arr = new T[size];
+		allocator.alloc(arr, cap, 0, size);
 		sz = size;
 		cap = size;
 	}
 	Vector(unsigned int size, const T & init)
 	{
-		arr = new T[size];
-		for (int i = 0; i < sz; i++)
-			arr[i] = init;
+		allocator.alloc(arr, cap, 0, size);
+		for (int i = 0; i < size; i++)
+			arr[i] = move(init);
 		sz = size;
 		cap = size;
 	}
 	Vector(const Vector<T> & vec)
 	{
+		allocator.alloc(arr, cap, sz, vec.sz);
 		sz = vec.sz;
 		cap = vec.cap;
-		arr = new T[sz];
 		for (int i = 0; i < sz; i++)
-			arr[i] = vec.arr[i];
+			arr[i] = move(vec.arr[i]);
 	}
 	Vector(Vector<T> && vec)
 	{
@@ -133,34 +149,32 @@ public:
 	}
 	~Vector()
 	{
-		if (arr != nullptr)
-			delete [] arr;
-		sz = 0;
-		cap = 0;
+		allocator.dealloc(arr, cap, sz);
 	}
 	Vector<T> & operator = (const Vector<T> & b)
 	{
 		if (b == *this)
 			return *this;
+		
+		allocator.dealloc(arr, cap, sz);
 		sz = b.sz;
 		cap = b.cap;
-		if (arr != nullptr)
-			delete [] arr;
-		arr = new T[sz];
+		allocator.realloc(arr, cap, 0, sz);
 		for (int i = 0; i < sz; i++)
-			arr[i] = b.arr[i];
+			arr[i] = move(b.arr[i]);
 		return *this;
 	}
 	Vector<T> & operator = (Vector<T> && b)
 	{
 		if (&b == this)
 			return *this;
+		
+		allocator.dealloc(arr, cap, sz);
 		sz = b.sz;
 		b.sz = 0;
 		cap = b.cap;
 		b.cap = 0;
-		if (arr != nullptr)
-			delete [] arr;
+		
 		arr = b.arr;
 		b.arr = nullptr;
 		return *this;
@@ -179,7 +193,13 @@ public:
 	}
 	void push_back(const T & val)
 	{
-		allocator.alloc(arr, cap, sz, sz+1);
+		allocator.realloc(arr, cap, sz, sz+1);
+		arr[sz] = val;
+		sz++;
+	} 
+	void push_back(T && val)
+	{
+		allocator.realloc(arr, cap, sz, sz+1);
 		arr[sz] = val;
 		sz++;
 	} 
@@ -207,11 +227,8 @@ public:
 	}
     	void clear()
     	{
-		if (arr != nullptr)
-			delete [] arr;
+		allocator.dealloc(arr, cap, sz);
 		arr = nullptr;
-		sz = 0;
-		cap = 0;
 	}
 	Iterator<T> begin()
 	{
@@ -236,7 +253,7 @@ public:
 	}
 	void reserve(unsigned int len)
 	{
-		allocator.alloc(arr, cap, sz, len);
+		allocator.realloc(arr, cap, sz, len);
 	}
 	unsigned int capacity() const
 	{

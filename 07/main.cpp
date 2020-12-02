@@ -79,6 +79,7 @@ int main()
 	assert(vec.size() == 3);
 	
 	cout << "OK" << endl;
+	
 	return 0;
 }
 
