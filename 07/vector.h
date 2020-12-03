@@ -84,7 +84,7 @@ public:
 			capacity = newsz + 10;
 		T* vec2 = new T[capacity];
 		for (int i = 0; i < sz; i++)
-			vec2[i] = vec[i];
+			vec2[i] = move(vec[i]);
 		if (vec != nullptr)
 			delete [] vec;
 		vec = vec2;
@@ -96,7 +96,6 @@ public:
 		capacity = 0;
 		sz = 0;
 		delete [] vec;
-		
 	}
 };
 
@@ -126,7 +125,7 @@ public:
 	{
 		allocator.alloc(arr, cap, 0, size);
 		for (int i = 0; i < size; i++)
-			arr[i] = move(init);
+			arr[i] = init;
 		sz = size;
 		cap = size;
 	}
@@ -136,7 +135,7 @@ public:
 		sz = vec.sz;
 		cap = vec.cap;
 		for (int i = 0; i < sz; i++)
-			arr[i] = move(vec.arr[i]);
+			arr[i] = vec.arr[i];
 	}
 	Vector(Vector<T> && vec)
 	{
@@ -161,7 +160,7 @@ public:
 		cap = b.cap;
 		allocator.realloc(arr, cap, 0, sz);
 		for (int i = 0; i < sz; i++)
-			arr[i] = move(b.arr[i]);
+			arr[i] = b.arr[i];
 		return *this;
 	}
 	Vector<T> & operator = (Vector<T> && b)
@@ -200,7 +199,7 @@ public:
 	void push_back(T && val)
 	{
 		allocator.realloc(arr, cap, sz, sz+1);
-		arr[sz] = val;
+		arr[sz] = move(val);
 		sz++;
 	} 
     	void pop_back()
